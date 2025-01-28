@@ -8,7 +8,9 @@ using Microsoft.UI.Xaml.Media;
 using Windows.System;
 using WinUIGallery.Helper;
 
-namespace WinUIGallery.TabViewPages
+namespace WinUIGallery.TabViewPages;
+
+public sealed partial class TabViewWindowingSamplePage : Page
 {
     public class TabItemData : DependencyObject
     {
@@ -45,17 +47,57 @@ namespace WinUIGallery.TabViewPages
         private readonly ObservableCollection<TabItemData> tabItemDataList = [];
         public ObservableCollection<TabItemData> TabItemDataList => tabItemDataList;
 
-        public TabViewWindowingSamplePage()
-        {
-            this.InitializeComponent();
+        Loaded += TabViewWindowingSamplePage_Loaded;
+    }
 
-            Loaded += TabViewWindowingSamplePage_Loaded;
+    public void SetupWindowMinSize(Window window)
+    {
+        win32WindowHelper = new Win32WindowHelper(window);
+        win32WindowHelper.SetWindowMinMaxSize(new Win32WindowHelper.POINT() { x = 500, y = 300 });
+    }
+
+    private void TabViewWindowingSamplePage_Loaded(object sender, RoutedEventArgs e)
+    {
+        var currentWindow = WindowHelper.GetWindowForElement(this);
+        currentWindow.ExtendsContentIntoTitleBar = true;
+        currentWindow.SetTitleBar(CustomDragRegion);
+        CustomDragRegion.MinWidth = 188;
+    }
+
+    public void LoadDemoData()
+    {
+        // Main Window -- add some default items
+        for (int i = 0; i < 3; i++)
+        {
+            Tabs.TabItems.Add(new TabViewItem() { IconSource = new Microsoft.UI.Xaml.Controls.SymbolIconSource() { Symbol = Symbol.Placeholder }, Header = $"Item {i}", Content = new MyTabContentControl() { DataContext = $"Page {i}" } });
         }
 
-        public void SetupWindowMinSize(Window window)
+        Tabs.SelectedIndex = 0;
+    }
+
+    public void AddTabToTabs(TabViewItem tab)
+    {
+        Tabs.TabItems.Add(tab);
+    }
+
+    private void Tabs_TabTearOutWindowRequested(TabView sender, TabViewTabTearOutWindowRequestedEventArgs args)
+    {
+        var newPage = new TabViewWindowingSamplePage();
+
+        tabTearOutWindow = WindowHelper.CreateWindow();
+        tabTearOutWindow.ExtendsContentIntoTitleBar = true;
+        tabTearOutWindow.Content = newPage;
+        tabTearOutWindow.AppWindow.SetIcon("Assets/Tiles/GalleryIcon.ico");
+        newPage.SetupWindowMinSize(tabTearOutWindow);
+
+        args.NewWindowId = tabTearOutWindow.AppWindow.Id;
+    }
+
+    private void Tabs_TabTearOutRequested(TabView sender, TabViewTabTearOutRequestedEventArgs args)
+    {
+        if (tabTearOutWindow == null)
         {
-            win32WindowHelper = new Win32WindowHelper(window);
-            win32WindowHelper.SetWindowMinMaxSize(new Win32WindowHelper.POINT() { x = 500, y = 300 });
+            return;
         }
 
         private void TabViewWindowingSamplePage_Loaded(object sender, RoutedEventArgs e)
@@ -95,15 +137,42 @@ namespace WinUIGallery.TabViewPages
             }
         }
 
-        public void LoadDemoData()
+        foreach (TabViewItem tab in args.Tabs.Cast<TabViewItem>())
         {
-            // Main Window -- add some default items
-            for (int i = 0; i < 3; i++)
+            GetParentTabView(tab)?.TabItems.Remove(tab);
+            newPage.AddTabToTabs(tab);
+        }
+    }
+
+    private void Tabs_ExternalTornOutTabsDropping(TabView sender, TabViewExternalTornOutTabsDroppingEventArgs args)
+    {
+        args.AllowDrop = true;
+    }
+
+    private void Tabs_ExternalTornOutTabsDropped(TabView sender, TabViewExternalTornOutTabsDroppedEventArgs args)
+    {
+        int position = 0;
+
+        foreach (TabViewItem tab in args.Tabs.Cast<TabViewItem>())
+        {
+            GetParentTabView(tab)?.TabItems.Remove(tab);
+            sender.TabItems.Insert(args.DropIndex + position, tab);
+            position++;
+        }
+    }
+
+    private TabView GetParentTabView(TabViewItem tab)
+    {
+        DependencyObject current = tab;
+
+        while (current != null)
+        {
+            if (current is TabView tabView)
             {
                 TabItemDataList.Add(new TabItemData() { Header = $"Item {i}", Content = $"Page {i}" });
             }
 
-            Tabs.SelectedIndex = 0;
+            current = VisualTreeHelper.GetParent(current);
         }
 
         private void Tabs_TabTearOutWindowRequested(TabView sender, TabViewTabTearOutWindowRequestedEventArgs args)
@@ -116,13 +185,23 @@ namespace WinUIGallery.TabViewPages
         {
             if (tabTearOutWindow == null)
             {
-                return;
+                Symbol = Symbol.Placeholder
+            },
+            Header = header,
+            Content = new MyTabContentControl()
+            {
+                DataContext = dataContext
             }
+        };
 
             MoveDataItems(TabItemDataList, GetTabItemDataList(tabTearOutWindow), args.Items, 0);
         }
 
-        private void Tabs_ExternalTornOutTabsDropping(TabView sender, TabViewExternalTornOutTabsDroppingEventArgs args)
+    private void Tabs_TabCloseRequested(TabView sender, TabViewTabCloseRequestedEventArgs args)
+    {
+        sender.TabItems.Remove(args.Tab);
+
+        if (sender.TabItems.Count == 0)
         {
             args.AllowDrop = true;
         }
@@ -300,4 +379,3 @@ namespace WinUIGallery.TabViewPages
             }
         }
     }
-}

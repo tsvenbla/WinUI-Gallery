@@ -12,8 +12,8 @@ using System.Collections.ObjectModel;
 using Microsoft.UI.Xaml.Media;
 using System.Collections;
 
-namespace WinUIGallery.ControlPages
-{
+namespace WinUIGallery.ControlPages;
+
     public class MyData
     {
         public string DataHeader { get; set; }
@@ -265,4 +265,3 @@ namespace WinUIGallery.ControlPages
             TabViewHelper.PopulateTabViewContextMenu((MenuFlyout)sender);
         }
     }
-}
