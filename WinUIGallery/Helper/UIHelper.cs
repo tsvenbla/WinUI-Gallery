@@ -41,23 +41,6 @@ public static class UIHelper
                 queue.Enqueue(child);
             }
         }
-
-        public static T GetParent<T>(DependencyObject child) where T : DependencyObject
-        {
-            DependencyObject current = child;
-
-            while (current != null)
-            {
-                if (current is T parent)
-                {
-                    return parent;
-                }
-
-                current = VisualTreeHelper.GetParent(current);
-            }
-
-            return null;
-        }
     }
 
     static public UIElement FindElementByName(UIElement element, string name)
@@ -79,5 +62,22 @@ public static class UIHelper
         var peer = FrameworkElementAutomationPeer.FromElement(ue);
         peer.RaiseNotificationEvent(AutomationNotificationKind.ActionCompleted,
                                     AutomationNotificationProcessing.ImportantMostRecent, annoucement, activityID);
+    }
+
+    public static T GetParent<T>(DependencyObject child) where T : DependencyObject
+    {
+        DependencyObject current = child;
+
+        while (current != null)
+        {
+            if (current is T parent)
+            {
+                return parent;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
     }
 }
