@@ -4,6 +4,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Windows.System;
 using WinUIGallery.Helper;
 
@@ -136,6 +137,7 @@ public sealed partial class TabViewWindowingSamplePage : Page
         var newPage = new TabViewWindowingSamplePage();
 
         var window = WindowHelper.CreateWindow();
+        window.SystemBackdrop = new MicaBackdrop();
         window.ExtendsContentIntoTitleBar = true;
         window.Content = newPage;
         window.AppWindow.SetIcon("Assets/Tiles/GalleryIcon.ico");
