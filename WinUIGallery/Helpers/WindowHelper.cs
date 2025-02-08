@@ -20,16 +20,18 @@ using WinRT.Interop;
 
 namespace WinUIGallery.Helpers;
 
-// Helper class to allow the app to find the Window that contains an
-// arbitrary UIElement (GetWindowForElement).  To do this, we keep track
-// of all active Windows.  The app code must call WindowHelper.CreateWindow
-// rather than "new Window" so we can keep track of all the relevant
-// windows.  In the future, we would like to support this in platform APIs.
+/// <summary>
+/// Helper class to allow the app to find the Window that contains an arbitrary UIElement.
+/// </summary>
 public class WindowHelper
 {
-    static public Window CreateWindow()
+    /// <summary>
+    /// Creates a new Window and tracks it.
+    /// </summary>
+    /// <returns>The newly created Window.</returns>
+    public static Window CreateWindow()
     {
-        Window newWindow = new Window
+        Window newWindow = new()
         {
             SystemBackdrop = new MicaBackdrop()
         };
@@ -37,26 +39,38 @@ public class WindowHelper
         return newWindow;
     }
 
-    static public void TrackWindow(Window window)
+    /// <summary>
+    /// Tracks the specified Window.
+    /// </summary>
+    /// <param name="window">The Window to track.</param>
+    public static void TrackWindow(Window window)
     {
-        window.Closed += (sender,args) => {
-            _activeWindows.Remove(window);
-        };
-        _activeWindows.Add(window);
+        window.Closed += (sender, args) => ActiveWindows.Remove(window);
+        ActiveWindows.Add(window);
     }
 
-    static public AppWindow GetAppWindow(Window window)
+    /// <summary>
+    /// Gets the AppWindow for the specified Window.
+    /// </summary>
+    /// <param name="window">The Window to get the AppWindow for.</param>
+    /// <returns>The AppWindow for the specified Window.</returns>
+    public static AppWindow GetAppWindow(Window window)
     {
         IntPtr hWnd = WindowNative.GetWindowHandle(window);
         WindowId wndId = Win32Interop.GetWindowIdFromWindow(hWnd);
         return AppWindow.GetFromWindowId(wndId);
     }
 
-    static public Window GetWindowForElement(UIElement element)
+    /// <summary>
+    /// Gets the Window that contains the specified UIElement.
+    /// </summary>
+    /// <param name="element">The UIElement to find the containing Window for.</param>
+    /// <returns>The Window that contains the specified UIElement, or null if not found.</returns>
+    public static Window? GetWindowForElement(UIElement element)
     {
         if (element.XamlRoot != null)
         {
-            foreach (Window window in _activeWindows)
+            foreach (Window window in ActiveWindows)
             {
                 if (element.XamlRoot == window.Content.XamlRoot)
                 {
@@ -66,12 +80,17 @@ public class WindowHelper
         }
         return null;
     }
-    // get dpi for an element
-    static public double GetRasterizationScaleForElement(UIElement element)
+
+    /// <summary>
+    /// Gets the rasterization scale for the specified UIElement.
+    /// </summary>
+    /// <param name="element">The UIElement to get the rasterization scale for.</param>
+    /// <returns>The rasterization scale for the specified UIElement.</returns>
+    public static double GetRasterizationScaleForElement(UIElement element)
     {
         if (element.XamlRoot != null)
         {
-            foreach (Window window in _activeWindows)
+            foreach (Window window in ActiveWindows)
             {
                 if (element.XamlRoot == window.Content.XamlRoot)
                 {
@@ -82,21 +101,20 @@ public class WindowHelper
         return 0.0;
     }
 
-    static public List<Window> ActiveWindows { get { return _activeWindows; }}
+    /// <summary>
+    /// Gets the list of active Windows.
+    /// </summary>
+    public static List<Window> ActiveWindows { get; } = [];
 
-    static private List<Window> _activeWindows = new List<Window>();
-
-    static public StorageFolder GetAppLocalFolder()
+    /// <summary>
+    /// Gets the local folder for the app.
+    /// </summary>
+    /// <returns>The local folder for the app.</returns>
+    public static StorageFolder GetAppLocalFolder()
     {
-        StorageFolder localFolder;
-        if (!NativeHelper.IsAppPackaged)
-        {
-            localFolder = Task.Run(async () => await StorageFolder.GetFolderFromPathAsync(System.AppContext.BaseDirectory)).Result;
-        }
-        else
-        {
-            localFolder = ApplicationData.Current.LocalFolder;
-        }
+        StorageFolder localFolder = !NativeHelper.IsAppPackaged
+            ? Task.Run(async () => await StorageFolder.GetFolderFromPathAsync(AppContext.BaseDirectory)).Result
+            : ApplicationData.Current.LocalFolder;
         return localFolder;
     }
 }
